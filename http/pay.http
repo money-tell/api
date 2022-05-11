@@ -1,0 +1,13 @@
+
+### Get all pays
+GET {{host}}/pays
+
+
+### Add pay
+POST {{host}}/pays
+Content-Type: application/json
+
+{
+  "title": "Test 1",
+  "price": 6000
+}

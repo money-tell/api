@@ -1,0 +1,24 @@
+version: "3.7"
+
+services:
+  api:
+    image: docker.dcube.devmail.ru/base/golang-1.13-devtools:latest
+    working_dir: /go/src/mgateway/mobile-gateway
+    entrypoint: make run
+    env_file:
+      - ../../.env
+      - .env
+    volumes:
+      - ${PWD}:/go/src/mgateway/mobile-gateway
+    ports:
+      - 17001:17001
+
+  redis-cluster:
+    image: grokzen/redis-cluster:5.0.4
+    logging:
+      driver: none
+    ports:
+      - '7000-7007:7000-7007'
+      - '5000-5002:5000-5002'
+    environment:
+      IP: "0.0.0.0"
