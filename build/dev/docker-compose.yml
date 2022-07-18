@@ -1,0 +1,11 @@
+version: "3.7"
+
+services:
+  service:
+    image: money-loyalty:build
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mtell
+      - MONGO_INITDB_ROOT_PASSWORD=mtell
