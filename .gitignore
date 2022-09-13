@@ -1,2 +1,5 @@
 .idea/
 vendor/
+
+*.gen.go
+app/generated

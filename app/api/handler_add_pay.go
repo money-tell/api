@@ -1,27 +1,32 @@
 package api
 
 import (
-	"net/http"
+	"context"
+
+	"github.com/katalabut/money-tell-api/app/processors/auth"
 )
 
-type addPayRequest struct {
-	request
-	Title string  `json:"title" validate:"required"`
-	Price float32 `json:"price" validate:"required"`
-}
-
-func (a *Api) addPay(w http.ResponseWriter, r *http.Request) {
-	payReq := &addPayRequest{}
-
-	if err := bindRequest(r, payReq); err != nil {
-		response(w, r, http.StatusBadRequest, "Empty body")
-		return
-	}
-
-	pay, err := a.storage.AddPay(payReq.Title, payReq.Price)
+func (a *Api) AddPay(ctx context.Context, request AddPayRequestObject) interface{} {
+	userID, err := auth.UserIDFromCtx(ctx)
 	if err != nil {
-		responseError(w, r, http.StatusInternalServerError, err, "insert pay error")
+		return err
 	}
 
-	response(w, r, http.StatusOK, pay)
+	pay, err := a.processors.Pays.AddPay(ctx, userID, request)
+	if err != nil {
+		return err
+	}
+
+	return
+	//user, err := a.processors.Auth.BaseLogin(ctx, r.Body.Email, r.Body.Password)
+	//if err != nil {
+	//	return AuthEmail401Response{}
+	//}
+	//
+	//token, err := a.processors.Auth.MakeToken(user.ID)
+	//if err != nil {
+	//	return AuthEmail401Response{}
+	//}
+	//
+	//return AuthEmail200JSONResponse{Token: token}
 }

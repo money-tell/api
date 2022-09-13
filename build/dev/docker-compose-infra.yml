@@ -1,11 +1,16 @@
 version: "3.7"
 
 services:
-  mongodb:
-    image: mongo:5.0
-    restart: always
-    ports:
-      - "27017:27017"
+  postgres:
+    image: postgres:14
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=mtell
-      - MONGO_INITDB_ROOT_PASSWORD=mtell
+      - POSTGRES_PASSWORD=money
+      - POSTGRES_USER=money
+      - POSTGRES_DB=money
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      interval: 1s
+      timeout: 1s
+      retries: 10

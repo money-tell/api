@@ -5,19 +5,21 @@ import (
 
 	"github.com/vrischmann/envconfig"
 
-	"github.com/katalabut/money-tell-api/app/services/auth"
+	"github.com/katalabut/money-tell-api/app/processors/auth"
 )
 
-type Config struct {
-	HttpPort int `envconfig:"default=8080"`
-	Auth     auth.Config
-	Mongo    Mongo
-}
-
 type (
-	Mongo struct {
-		Uri      string
-		DataBase string
+	Config struct {
+		HttpPort int `envconfig:"default=8080"`
+		Auth     auth.Config
+		Postgres *Postgres
+	}
+
+	Postgres struct {
+		MasterDSN      string `required:"true"`
+		SlaveDSN       string `required:"true"`
+		MaxIdleClients int    `envconfig:"default=2"`
+		MaxOpenClients int    `envconfig:"default=5"`
 	}
 )
 

@@ -1,0 +1,13 @@
+version: "1"
+packages:
+  - name: "queries"
+    path: "app/generated/db"
+    queries: "./queries"
+    schema: "./migrations/"
+    engine: "postgresql"
+    emit_json_tags: false
+    emit_prepared_queries: false
+    emit_interface: true
+    emit_exact_table_names: false
+    emit_empty_slices: false
+    emit_result_struct_pointers: true
