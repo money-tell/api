@@ -13,7 +13,7 @@ func (a *Api) GetPays(ctx context.Context, r GetPaysRequestObject) interface{} {
 		return err
 	}
 
-	pays, err := a.processors.Pays.GetPaysByUser(ctx, userID)
+	pays, err := a.processors.Pays.GetPaysByUser(ctx, userID, r.Params)
 	if err != nil {
 		return err
 	}

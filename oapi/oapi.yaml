@@ -61,13 +61,18 @@ paths:
         - BearerAuth: [ ]
       operationId: GetPays
       parameters:
-        - name: limit
+        - name: dateFrom
           in: query
-          description: maximum number of results to return
-          required: false
+          required: true
           schema:
-            type: integer
-            format: int32
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
       responses:
         '200':
           description: Pays response

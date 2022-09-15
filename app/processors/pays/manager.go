@@ -21,8 +21,22 @@ func New(master, slave *queries.Queries) *Manager {
 	}
 }
 
-func (m *Manager) GetPaysByUser(ctx context.Context, userID int64) ([]*queries.Pay, error) {
-	return m.queriesSlave.GetPaysByUserID(ctx, userID)
+func (m *Manager) GetPaysByUser(ctx context.Context, userID int64, params api.GetPaysParams) ([]*queries.Pay, error) {
+	pays, err := m.queriesSlave.GetPaysByUserID(ctx, queries.GetPaysByUserIDParams{
+		UserID:   userID,
+		DateFrom: params.DateFrom.Time,
+		DateTo:   params.DateTo.Time,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	repeatPays, err := m.prepareRepeatedPays(ctx, userID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(pays, repeatPays...), nil
 }
 
 func (m *Manager) AddPay(ctx context.Context, userID int64, req api.AddPayRequestObject) (*queries.Pay, error) {
