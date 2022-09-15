@@ -9,8 +9,6 @@ SELECT *
 FROM pays
 WHERE user_id = @user_id
   AND repeat_type is not null
-  AND repeat_type is not null
-  AND date between @from_date::timestamp and @to_date::timestamp
   AND (
             repeat_type = 'daily' OR
             (repeat_type = 'weekly' AND date_part('dow', date) in (@days_of_week::int[])) OR
