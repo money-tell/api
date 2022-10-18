@@ -31,12 +31,7 @@ func (m *Manager) GetPaysByUser(ctx context.Context, userID uuid.UUID, params *m
 		return nil, err
 	}
 
-	repeatPays, err := m.prepareRepeatedPays(ctx, userID, params)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(pays, repeatPays...), nil
+	return m.fetchRepeatedPays(ctx, userID, params, pays)
 }
 
 func (m *Manager) AddPay(ctx context.Context, userID uuid.UUID, req *models.PayRequest) (*queries.Pay, error) {

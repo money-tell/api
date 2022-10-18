@@ -2,27 +2,30 @@ package pays
 
 import (
 	"context"
+	"sort"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 
 	"github.com/katalabut/money-tell-api/app/api/models"
 	queries "github.com/katalabut/money-tell-api/app/generated/db"
 )
 
-func (m *Manager) prepareRepeatedPays(ctx context.Context, userID uuid.UUID, params *models.GetPaysRequest) ([]*queries.Pay, error) {
+func (m *Manager) fetchRepeatedPays(ctx context.Context, userID uuid.UUID, params *models.GetPaysRequest, pays []*queries.Pay) ([]*queries.Pay, error) {
 	from := params.DateFrom
 	to := params.DateTo
 
 	dow := []int32{1, 2, 3, 4, 5, 6, 7}
-	if dc := int(to.Sub(from).Hours()) / 24; dc < 7 {
-		dow = make([]int32, 0, dc)
-		for i := 0; i < dc; i++ {
+	if dbd := int(to.Sub(from).Hours()) / 24; dbd < 7 {
+		dow = make([]int32, 0, dbd)
+		for i := 0; i < dbd; i++ {
 			d := from.AddDate(0, 0, i)
 			dow = append(dow, int32(d.Weekday()))
 		}
 	}
 
-	pays, err := m.queriesSlave.GetRepeatedPaysByUserID(ctx, queries.GetRepeatedPaysByUserIDParams{
+	repeated, err := m.queriesSlave.GetRepeatedPaysByUserID(ctx, queries.GetRepeatedPaysByUserIDParams{
 		UserID:         userID,
 		DaysOfWeek:     dow,
 		MonthlyDayFrom: int32(from.Day()),
@@ -34,5 +37,58 @@ func (m *Manager) prepareRepeatedPays(ctx context.Context, userID uuid.UUID, par
 		return nil, err
 	}
 
-	return pays, nil
+	var clones []*queries.Pay
+	for _, pay := range repeated {
+		subDate := pay.Date
+		if subDate.Before(from) {
+			subDate = from
+			pay.Date = pay.Date.AddDate(0, 0, int(subDate.Sub(pay.Date).Hours()/24))
+		}
+
+		difference := to.Sub(subDate)
+		switch pay.RepeatType {
+		case queries.PaysRepeatTypeDaily:
+			dayBetween := int(difference.Hours() / 24)
+			clones = append(clones, clonePayWithStep(*pay, dayBetween, 1, 0, 0)...)
+			/*case queries.PaysRepeatTypeWeekly:
+				weekBetween := int(difference.Hours() / 24 / 7)
+				clones = append(clones, clonePayWithStep(*pay, weekBetween, 7, 0, 0)...)
+			case queries.PaysRepeatTypeMonthly:
+				monthBetween := int(difference.Hours() / 24 / 30)
+				clones = append(clones, clonePayWithStep(*pay, monthBetween, 0, 1, 0)...)
+			case queries.PaysRepeatTypeYearly:
+				yearBetween := int(difference.Hours() / 24 / 365)
+				clones = append(clones, clonePayWithStep(*pay, yearBetween, 0, 0, 1)...)*/
+		}
+	}
+
+	allPays := make([]*queries.Pay, 0, len(pays)+len(clones))
+	for _, p := range pays {
+		allPays = append(allPays, p)
+	}
+	for _, c := range clones {
+		println(c.Title, c.Date.String(), c)
+		allPays = append(allPays, c)
+	}
+
+	sort.Slice(allPays, func(i, j int) bool { return allPays[i].Date.Before(allPays[j].Date) })
+
+	return allPays, nil
+}
+
+func clonePayWithStep(pay queries.Pay, count, dayStep, monthStep, yearStep int) []*queries.Pay {
+	pays := make([]*queries.Pay, 0, count)
+	for i := 0; i < count+1; i++ {
+		p := &queries.Pay{}
+		err := deepcopier.Copy(pay).To(p)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+
+		p.Date = pay.Date.AddDate(i*yearStep, i*monthStep, i*dayStep)
+		pays = append(pays, p)
+	}
+
+	return pays
 }
