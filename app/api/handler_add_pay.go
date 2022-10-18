@@ -1,32 +1,33 @@
 package api
 
 import (
-	"context"
+	"net/http"
 
+	"github.com/labstack/echo/v4"
+
+	"github.com/katalabut/money-tell-api/app/api/mappers"
+	"github.com/katalabut/money-tell-api/app/api/models"
 	"github.com/katalabut/money-tell-api/app/processors/auth"
 )
 
-func (a *Api) AddPay(ctx context.Context, request AddPayRequestObject) interface{} {
-	userID, err := auth.UserIDFromCtx(ctx)
+func (a *Api) AddPay(c echo.Context) error {
+	userID, err := auth.UserIDFromEchoCtx(c)
 	if err != nil {
 		return err
 	}
 
-	pay, err := a.processors.Pays.AddPay(ctx, userID, request)
+	r := new(models.PayRequest)
+	if err := c.Bind(r); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(r); err != nil {
+		return err
+	}
+
+	pay, err := a.processors.Pays.AddPay(c.Request().Context(), userID, r)
 	if err != nil {
 		return err
 	}
 
-	return
-	//user, err := a.processors.Auth.BaseLogin(ctx, r.Body.Email, r.Body.Password)
-	//if err != nil {
-	//	return AuthEmail401Response{}
-	//}
-	//
-	//token, err := a.processors.Auth.MakeToken(user.ID)
-	//if err != nil {
-	//	return AuthEmail401Response{}
-	//}
-	//
-	//return AuthEmail200JSONResponse{Token: token}
+	return c.JSON(http.StatusOK, mappers.MapPay(*pay))
 }

@@ -30,7 +30,6 @@ gen-sql:
 	@mockery --dir app/generated/db/ --output app/generated/db/mocks --name Querier
 
 gen: gen-sql
-	@go generate ./...
 
 
 ### DOCKER ###

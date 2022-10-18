@@ -1,16 +1,12 @@
-//go:generate oapi-codegen --config ../../oapi/cfg.yaml ../../oapi/oapi.yaml
-
 package api
 
 import (
 	"fmt"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
-
-	oapiMiddleware "github.com/deepmap/oapi-codegen/pkg/middleware"
 
 	"github.com/katalabut/money-tell-api/app/config"
 	queries "github.com/katalabut/money-tell-api/app/generated/db"
@@ -32,25 +28,26 @@ func Run(cfg *config.Config) error {
 		return err
 	}
 
-	spec, err := GetSwagger()
-	if err != nil {
-		return err
-	}
-
-	validator := oapiMiddleware.OapiRequestValidatorWithOptions(spec,
-		&oapiMiddleware.Options{
-			Options: openapi3filter.Options{
-				AuthenticationFunc: auth.NewAuthenticator(api.processors.Auth.GetTokenAuth()),
-			},
-		})
+	//validator := oapiMiddleware.OapiRequestValidatorWithOptions(spec,
+	//	&oapiMiddleware.Options{
+	//		Options: openapi3filter.Options{
+	//			AuthenticationFunc: auth.NewAuthenticator(api.processors.Auth.GetTokenAuth()),
+	//		},
+	//	})
 
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(validator)
+	e.Validator = &Validator{validator: validator.New()}
 
-	s := NewStrictHandler(api, nil)
-	RegisterHandlersWithBaseURL(e, s, "/v1")
+	v1 := e.Group("/v1")
+	v1r := v1.Group("")
+
+	v1.POST("/auth/email", api.AuthEmail)
+
+	v1r.Use(middleware.JWTWithConfig(api.processors.Auth.NewConfigMiddleware()))
+	v1r.GET("/pays", api.GetPays)
+	v1r.POST("/pays", api.AddPay)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%d", cfg.HttpPort)))
 

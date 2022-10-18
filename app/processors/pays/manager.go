@@ -3,9 +3,9 @@ package pays
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
+	"github.com/google/uuid"
 
-	"github.com/katalabut/money-tell-api/app/api"
+	"github.com/katalabut/money-tell-api/app/api/models"
 	queries "github.com/katalabut/money-tell-api/app/generated/db"
 )
 
@@ -21,11 +21,11 @@ func New(master, slave *queries.Queries) *Manager {
 	}
 }
 
-func (m *Manager) GetPaysByUser(ctx context.Context, userID int64, params api.GetPaysParams) ([]*queries.Pay, error) {
+func (m *Manager) GetPaysByUser(ctx context.Context, userID uuid.UUID, params *models.GetPaysRequest) ([]*queries.Pay, error) {
 	pays, err := m.queriesSlave.GetPaysByUserID(ctx, queries.GetPaysByUserIDParams{
 		UserID:   userID,
-		DateFrom: params.DateFrom.Time,
-		DateTo:   params.DateTo.Time,
+		DateFrom: params.DateFrom,
+		DateTo:   params.DateTo,
 	})
 	if err != nil {
 		return nil, err
@@ -39,22 +39,19 @@ func (m *Manager) GetPaysByUser(ctx context.Context, userID int64, params api.Ge
 	return append(pays, repeatPays...), nil
 }
 
-func (m *Manager) AddPay(ctx context.Context, userID int64, req api.AddPayRequestObject) (*queries.Pay, error) {
-	repeatType := queries.NullPaysRepeatType{}
-	if req.Body.RepeatType != nil {
-		err := repeatType.Scan(*req.Body.RepeatType)
-		if err != nil {
-			logrus.Errorf("AddPay: error parse decoding spec: %s", err)
-		}
+func (m *Manager) AddPay(ctx context.Context, userID uuid.UUID, req *models.PayRequest) (*queries.Pay, error) {
+	rt := queries.PaysRepeatTypeNone
+	if req.RepeatType != nil {
+		rt = queries.PaysRepeatType(*req.RepeatType)
 	}
 
 	pay, err := m.queriesMaster.PayInsert(ctx, queries.PayInsertParams{
 		UserID:     userID,
-		Type:       queries.PaysType(req.Body.Type),
-		Title:      req.Body.Title,
-		Amount:     req.Body.Amount,
-		Date:       req.Body.Date,
-		RepeatType: repeatType,
+		Type:       queries.PaysType(req.Type),
+		Title:      req.Title,
+		Amount:     req.Amount,
+		Date:       req.Date,
+		RepeatType: rt,
 	})
 	if err != nil {
 		return nil, err

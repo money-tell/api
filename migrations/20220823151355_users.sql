@@ -2,10 +2,10 @@
 -- +goose StatementBegin
 CREATE TABLE users
 (
-    id         BIGSERIAL    NOT NULL PRIMARY KEY,
-    name       VARCHAR(255) NOT NULL,
-    email      VARCHAR(255) NOT NULL,
-    password   VARCHAR(255) NOT NULL,
+    id         UUID      DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
+    name       VARCHAR(255)                         NOT NULL,
+    email      VARCHAR(255)                         NOT NULL,
+    password   VARCHAR(255)                         NOT NULL,
     is_active  BOOLEAN   DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
