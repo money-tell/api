@@ -3,6 +3,7 @@ package pays
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -37,6 +38,26 @@ func (m *Manager) fetchRepeatedPays(ctx context.Context, userID uuid.UUID, param
 		return nil, err
 	}
 
+	clones := clonePays(repeated, from, to)
+
+	return mergeAndSortPay(pays, clones), nil
+}
+
+func mergeAndSortPay(one, two []*queries.Pay) []*queries.Pay {
+	pays := make([]*queries.Pay, 0, len(one)+len(two))
+	for _, p := range one {
+		pays = append(pays, p)
+	}
+	for _, c := range two {
+		pays = append(pays, c)
+	}
+
+	sort.Slice(pays, func(i, j int) bool { return pays[i].Date.Before(pays[j].Date) })
+
+	return pays
+}
+
+func clonePays(repeated []*queries.Pay, from time.Time, to time.Time) []*queries.Pay {
 	var clones []*queries.Pay
 	for _, pay := range repeated {
 		subDate := pay.Date
@@ -50,30 +71,19 @@ func (m *Manager) fetchRepeatedPays(ctx context.Context, userID uuid.UUID, param
 		case queries.PaysRepeatTypeDaily:
 			dayBetween := int(difference.Hours() / 24)
 			clones = append(clones, clonePayWithStep(*pay, dayBetween, 1, 0, 0)...)
-			/*case queries.PaysRepeatTypeWeekly:
-				weekBetween := int(difference.Hours() / 24 / 7)
-				clones = append(clones, clonePayWithStep(*pay, weekBetween, 7, 0, 0)...)
-			case queries.PaysRepeatTypeMonthly:
-				monthBetween := int(difference.Hours() / 24 / 30)
-				clones = append(clones, clonePayWithStep(*pay, monthBetween, 0, 1, 0)...)
-			case queries.PaysRepeatTypeYearly:
-				yearBetween := int(difference.Hours() / 24 / 365)
-				clones = append(clones, clonePayWithStep(*pay, yearBetween, 0, 0, 1)...)*/
+		case queries.PaysRepeatTypeWeekly:
+			weekBetween := int(difference.Hours() / 24 / 7)
+			clones = append(clones, clonePayWithStep(*pay, weekBetween, 7, 0, 0)...)
+		case queries.PaysRepeatTypeMonthly:
+			monthBetween := int(difference.Hours() / 24 / 30)
+			clones = append(clones, clonePayWithStep(*pay, monthBetween, 0, 1, 0)...)
+		case queries.PaysRepeatTypeYearly:
+			yearBetween := int(difference.Hours() / 24 / 365)
+			clones = append(clones, clonePayWithStep(*pay, yearBetween, 0, 0, 1)...)
 		}
 	}
 
-	allPays := make([]*queries.Pay, 0, len(pays)+len(clones))
-	for _, p := range pays {
-		allPays = append(allPays, p)
-	}
-	for _, c := range clones {
-		println(c.Title, c.Date.String(), c)
-		allPays = append(allPays, c)
-	}
-
-	sort.Slice(allPays, func(i, j int) bool { return allPays[i].Date.Before(allPays[j].Date) })
-
-	return allPays, nil
+	return clones
 }
 
 func clonePayWithStep(pay queries.Pay, count, dayStep, monthStep, yearStep int) []*queries.Pay {
