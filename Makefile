@@ -22,17 +22,27 @@ migrations-down:
 	@goose -dir migrations postgres "${MONEY_TELL_POSTGRES_MASTER_DSN}" down
 
 #gowrap gen -p ./app/generated/db/ -i Querier -o app/generated/db/with_prometheus.go -t queries/prometheus.gotmpl
+
+gen: gen-sql gen-mock
+
 gen-sql:
 	@echo "Generate sql..."
 	@rm -rf ./app/generated/db
 	@mkdir -p ./app/generated/db
 	@sqlc generate
+
+gen-mock:
+	@echo "Generate mocks..."
 	@mockery --dir app/generated/db/ --output app/generated/db/mocks --name Querier
 
-gen: gen-sql
-
-
 ### DOCKER ###
+
+build:
+	docker build -t mt/api .
+
+docker-gen: build
+	docker run --rm -v $(PWD):/src -w /src mt/api make gen
+
 docker-infra-run:
 	docker-compose -f build/dev/docker-compose-infra.yml up -d --build
 

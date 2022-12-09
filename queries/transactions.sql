@@ -1,4 +1,4 @@
--- name: GetPaysByUserID :many
+-- name: GetTransactionsByUserID :many
 SELECT id,
        user_id,
        type,
@@ -8,12 +8,12 @@ SELECT id,
        repeat_type,
        created_at,
        updated_at
-FROM pays
+FROM transactions
 WHERE user_id = @user_id::uuid
   AND date between @date_from::timestamp and @date_to::timestamp
   AND repeat_type = 'none';
 
--- name: GetRepeatedPaysByUserID :many
+-- name: GetRepeatedTransactionsByUserID :many
 SELECT id,
        user_id,
        type,
@@ -23,7 +23,7 @@ SELECT id,
        repeat_type,
        created_at,
        updated_at
-FROM pays
+FROM transactions
 WHERE user_id = @user_id
   AND repeat_type != 'none'
   AND (
@@ -35,7 +35,7 @@ WHERE user_id = @user_id
     );
 
 
--- name: PayInsert :one
-INSERT INTO pays (user_id, type, title, amount, date, repeat_type)
+-- name: TransactionsInsert :one
+INSERT INTO transactions (user_id, type, title, amount, date, repeat_type)
 VALUES (@user_id, @type, @title, @amount, @date, @repeat_type)
 RETURNING id, user_id, type, title, amount, date, repeat_type, created_at, updated_at;

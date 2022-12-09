@@ -1,6 +1,9 @@
 version: "3.7"
 
 services:
+  deps:
+    build:
+      dockerfile: ../../Dockerfile
   service:
     image: money-loyalty:build
     restart: always
