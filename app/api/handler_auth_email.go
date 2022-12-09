@@ -1,19 +1,26 @@
 package api
 
 import (
-	"context"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+
+	"github.com/katalabut/money-tell-api/app/api/models"
 )
 
-func (a *Api) AuthEmail(ctx context.Context, r AuthEmailRequestObject) interface{} {
-	user, err := a.processors.Auth.BaseLogin(ctx, r.Body.Email, r.Body.Password)
-	if err != nil {
-		return AuthEmail401Response{}
+func (a *Api) AuthEmail(c echo.Context) error {
+	r := new(models.AuthEmailRequest)
+	if err := c.Bind(r); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(r); err != nil {
+		return err
 	}
 
-	token, err := a.processors.Auth.MakeToken(user.ID)
+	token, err := a.processors.Auth.GenTokenByBasicLogin(c.Request().Context(), r.Email, r.Password)
 	if err != nil {
-		return AuthEmail401Response{}
+		return echo.NewHTTPError(http.StatusBadGateway, err.Error())
 	}
 
-	return AuthEmail200JSONResponse{Token: token}
+	return c.JSON(http.StatusOK, models.TokenResponse{Token: token})
 }

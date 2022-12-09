@@ -2,15 +2,70 @@ package auth
 
 import (
 	"context"
-	"errors"
+	"time"
 
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
-	"github.com/katalabut/money-tell-api/app/entities"
 	queries "github.com/katalabut/money-tell-api/app/generated/db"
 )
 
-var tokenNotValidError = errors.New("token not valid")
+type (
+	jwtUserClaims struct {
+		UUID string `json:"uuid"`
+		jwt.StandardClaims
+	}
+
+	Auth struct {
+		queries *queries.Queries
+		secret  []byte
+	}
+)
+
+func New(cfg Config, queries *queries.Queries) *Auth {
+	return &Auth{
+		secret:  []byte(cfg.Secret),
+		queries: queries,
+	}
+}
+
+func (a *Auth) NewConfigMiddleware() middleware.JWTConfig {
+	return middleware.JWTConfig{
+		Claims:     &jwtUserClaims{},
+		SigningKey: a.secret,
+	}
+}
+
+func (a *Auth) GenTokenByBasicLogin(ctx context.Context, email string, password string) (string, error) {
+	user, err := a.queries.FindUser(ctx, queries.FindUserParams{
+		Email:    email,
+		Password: password,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	claims := &jwtUserClaims{
+		UUID: user.ID.String(),
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(a.secret)
+}
+
+func UserIDFromEchoCtx(c echo.Context) (uuid.UUID, error) {
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(*jwtUserClaims)
+
+	return uuid.Parse(claims.UUID)
+}
+
+/*var tokenNotValidError = errors.New("token not valid")
 
 type Auth struct {
 	tokenAuth *JWTAuth
@@ -53,7 +108,7 @@ func (a *Auth) MakeToken(id int64) (string, error) {
 }
 
 func UserIDFromCtx(ctx context.Context) (int64, error) {
-	token, _, err := FromContext(ctx)
+	token, _, err := jwtauth.FromContext(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -78,3 +133,4 @@ func UserIDFromToken(token jwt.Token) (int64, error) {
 
 	return int64(userId), nil
 }
+*/
