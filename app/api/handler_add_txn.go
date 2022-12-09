@@ -10,13 +10,13 @@ import (
 	"github.com/katalabut/money-tell-api/app/processors/auth"
 )
 
-func (a *Api) AddPay(c echo.Context) error {
+func (a *Api) AddTransactions(c echo.Context) error {
 	userID, err := auth.UserIDFromEchoCtx(c)
 	if err != nil {
 		return err
 	}
 
-	r := new(models.PayRequest)
+	r := new(models.TransactionRequest)
 	if err := c.Bind(r); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
@@ -24,10 +24,10 @@ func (a *Api) AddPay(c echo.Context) error {
 		return err
 	}
 
-	pay, err := a.processors.Pays.AddPay(c.Request().Context(), userID, r)
+	pay, err := a.processors.Txn.Add(c.Request().Context(), userID, r)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, mappers.MapPay(*pay))
+	return c.JSON(http.StatusOK, mappers.MapTxn(*pay))
 }

@@ -1,4 +1,4 @@
-package pays
+package transactions
 
 import (
 	"context"
@@ -21,8 +21,8 @@ func New(master, slave *queries.Queries) *Manager {
 	}
 }
 
-func (m *Manager) GetPaysByUser(ctx context.Context, userID uuid.UUID, params *models.GetPaysRequest) ([]*queries.Pay, error) {
-	pays, err := m.queriesSlave.GetPaysByUserID(ctx, queries.GetPaysByUserIDParams{
+func (m *Manager) GetByUser(ctx context.Context, userID uuid.UUID, params *models.GetTransactionsRequest) ([]*queries.Transaction, error) {
+	pays, err := m.queriesSlave.GetTransactionsByUserID(ctx, queries.GetTransactionsByUserIDParams{
 		UserID:   userID,
 		DateFrom: params.DateFrom,
 		DateTo:   params.DateTo,
@@ -31,18 +31,18 @@ func (m *Manager) GetPaysByUser(ctx context.Context, userID uuid.UUID, params *m
 		return nil, err
 	}
 
-	return m.fetchRepeatedPays(ctx, userID, params, pays)
+	return m.fetchRepeated(ctx, userID, params, pays)
 }
 
-func (m *Manager) AddPay(ctx context.Context, userID uuid.UUID, req *models.PayRequest) (*queries.Pay, error) {
-	rt := queries.PaysRepeatTypeNone
+func (m *Manager) Add(ctx context.Context, userID uuid.UUID, req *models.TransactionRequest) (*queries.Transaction, error) {
+	rt := queries.TransactionsRepeatTypeNone
 	if req.RepeatType != nil {
-		rt = queries.PaysRepeatType(*req.RepeatType)
+		rt = queries.TransactionsRepeatType(*req.RepeatType)
 	}
 
-	pay, err := m.queriesMaster.PayInsert(ctx, queries.PayInsertParams{
+	pay, err := m.queriesMaster.TransactionsInsert(ctx, queries.TransactionsInsertParams{
 		UserID:     userID,
-		Type:       queries.PaysType(req.Type),
+		Type:       queries.TransactionsType(req.Type),
 		Title:      req.Title,
 		Amount:     req.Amount,
 		Date:       req.Date,

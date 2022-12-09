@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/katalabut/money-tell-api/app/processors/auth"
-	"github.com/katalabut/money-tell-api/app/processors/pays"
+	"github.com/katalabut/money-tell-api/app/processors/transactions"
 )
 
 type Deleter interface {
@@ -13,17 +13,17 @@ type Deleter interface {
 
 // Container контейнер процессоров
 type Container struct {
-	Pays *pays.Manager
+	Txn  *transactions.Manager
 	Auth *auth.Auth
 }
 
 // New создает и возвращает Container
 func New(
-	pays *pays.Manager,
+	txn *transactions.Manager,
 	auth *auth.Auth,
 ) *Container {
 	return &Container{
-		Pays: pays,
+		Txn:  txn,
 		Auth: auth,
 	}
 }
